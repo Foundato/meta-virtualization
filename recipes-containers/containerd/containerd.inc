@@ -6,7 +6,7 @@ DESCRIPTION = "containerd is a daemon to control runC, built for performance and
 
 # Apache-2.0 for containerd
 LICENSE = "Apache-2.0"
-LIC_FILES_CHKSUM = "file://src/import/LICENSE.code;md5=aadc30f9c14d876ded7bedc0afd2d3d7"
+LIC_FILES_CHKSUM ?= "file://src/import/LICENSE.code;md5=aadc30f9c14d876ded7bedc0afd2d3d7"
 
 SRC_URI += "file://containerd.service"
 
@@ -38,7 +38,7 @@ do_compile() {
     # without this, the stress test parts of the build fail
     cp ${S}/src/import/*.go ${S}/src/import/vendor/src/github.com/containerd/containerd
 
-    for c in content errdefs fs images mount snapshots linux api runtimes defaults progress \
+    for c in content timeout ttrpcutil oom stdio process errdefs fs images mount snapshots linux api runtimes defaults progress \
 		     protobuf reference diff platforms runtime remotes version archive dialer gc metadata \
 		     metrics filters identifiers labels leases plugin server services \
 		     cmd cio containers namespaces oci events log reaper sys rootfs nvidia seed apparmor seccomp; do
@@ -64,6 +64,7 @@ do_compile() {
     export BUILDTAGS="no_btrfs static_build netgo"
     export CFLAGS="${CFLAGS}"
     export LDFLAGS="${LDFLAGS}"
+    export SHIM_CGO_ENABLED="${CGO_ENABLED}"
 
     cd ${S}/src/import
     oe_runmake binaries
@@ -79,11 +80,15 @@ do_install() {
 
 	cp ${S}/src/import/bin/containerd ${D}/${bindir}/containerd
 	cp ${S}/src/import/bin/containerd-shim ${D}/${bindir}/containerd-shim
+	cp ${S}/src/import/bin/containerd-shim-runc-v1 ${D}/${bindir}/containerd-shim-runc-v1
+	cp ${S}/src/import/bin/containerd-shim-runc-v2 ${D}/${bindir}/containerd-shim-runc-v2
 	cp ${S}/src/import/bin/ctr ${D}/${bindir}/containerd-ctr
 	
 	ln -sf containerd ${D}/${bindir}/docker-containerd
 	ln -sf containerd-shim ${D}/${bindir}/docker-containerd-shim
 	ln -sf containerd-ctr ${D}/${bindir}/docker-containerd-ctr
+
+	ln -sf containerd-ctr ${D}/${bindir}/ctr
 
 	if ${@bb.utils.contains('DISTRO_FEATURES','systemd','true','false',d)}; then
 		install -d ${D}${systemd_unitdir}/system

@@ -2,16 +2,16 @@ DESCRIPTION = "A minimal xen image"
 
 INITRD_IMAGE = "core-image-minimal-initramfs"
 
+XEN_KERNEL_MODULES ?= "kernel-module-xen-blkback kernel-module-xen-gntalloc \
+                       kernel-module-xen-gntdev kernel-module-xen-netback kernel-module-xen-wdt \
+                       ${@bb.utils.contains('MACHINE_FEATURES', 'pci', "${XEN_PCIBACK_MODULE}", '', d)} \
+                       ${@bb.utils.contains('MACHINE_FEATURES', 'acpi', 'kernel-module-xen-acpi-processor', '', d)} \
+                      "
+
 IMAGE_INSTALL += " \
     packagegroup-core-boot \
     packagegroup-core-ssh-openssh \
-    ${@bb.utils.contains('MACHINE_FEATURES', 'acpi', 'kernel-module-xen-acpi-processor', '', d)} \
-    kernel-module-xen-blkback \
-    kernel-module-xen-gntalloc \
-    kernel-module-xen-gntdev \
-    kernel-module-xen-netback \
-    ${@bb.utils.contains('MACHINE_FEATURES', 'pci', "${XEN_PCIBACK_MODULE}", '', d)} \
-    kernel-module-xen-wdt \
+    ${XEN_KERNEL_MODULES} \
     xen-tools \
     qemu \
     "
@@ -74,10 +74,10 @@ build_syslinux_cfg () {
 
 # Enable runqemu. eg: runqemu xen-image-minimal nographic slirp
 WKS_FILE_x86-64 = "directdisk-xen.wks"
-QB_MEM = "-m 400"
-QB_DEFAULT_KERNEL = ""
-QB_DEFAULT_FSTYPE = "wic"
-QB_FSINFO = "wic:kernel-in-fs"
+QB_MEM ?= "-m 400"
+QB_DEFAULT_KERNEL ?= "none"
+QB_DEFAULT_FSTYPE ?= "wic"
+QB_FSINFO ?= "wic:kernel-in-fs"
 # qemux86-64 machine does not include 'wic' in IMAGE_FSTYPES, which is needed
 # to boot this image, so add it here:
 IMAGE_FSTYPES_qemux86-64 += "wic"

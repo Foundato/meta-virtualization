@@ -18,14 +18,16 @@ DESCRIPTION = "Linux container runtime \
  subtle and/or glaring issues. \
  "
 
-SRCREV_docker = "afacb8b7f0d8d4f9d2a8e8736e9c993e672b41f3"
-SRCREV_libnetwork = "c7bae399e46fd620b8a006174b7327e4e6e647fd"
+SRCREV_docker = "5eb3275d4006e4093807c35b4f7776ecd73b13a7"
+SRCREV_libnetwork = "55e924b8a84231a065879156c0de95aefc5f5435"
 SRC_URI = "\
 	git://github.com/docker/docker-ce.git;branch=19.03;name=docker \
 	git://github.com/docker/libnetwork.git;branch=bump_19.03;name=libnetwork;destsuffix=git/libnetwork \
 	file://0001-libnetwork-use-GO-instead-of-go.patch \
 	file://docker.init \
 	file://0001-imporve-hardcoded-CC-on-cross-compile-docker-ce.patch \
+        file://0001-dynbinary-use-go-cross-compiler.patch \
+        file://0001-cli-use-go-cross-compiler.patch \
 	"
 
 require docker.inc
@@ -38,7 +40,7 @@ GO_IMPORT = "import"
 
 S = "${WORKDIR}/git"
 
-DOCKER_VERSION = "19.03.8-ce"
+DOCKER_VERSION = "v19.03.14-ce"
 PV = "${DOCKER_VERSION}+git${SRCREV_docker}"
 
 PACKAGES =+ "${PN}-contrib"

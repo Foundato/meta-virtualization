@@ -17,9 +17,11 @@ SRC_URI = "http://download.ceph.com/tarballs/ceph-${PV}.tar.gz \
            file://0001-rgw-reject-unauthenticated-response-header-actions.patch \
            file://0001-rgw-EPERM-to-ERR_INVALID_REQUEST.patch \
            file://0001-rgw-reject-control-characters-in-response-header-act.patch \
-           file://0001-mgr-require-all-caps-for-pre-octopus-tell-commands.patch \ 
+           file://0001-mgr-require-all-caps-for-pre-octopus-tell-commands.patch \
            file://0002-mon-enforce-caps-for-pre-octopus-client-tell-command.patch \
            file://0003-PendingReleaseNotes-note-about-security-fix.patch \
+           file://0001-add-missing-include-for-atomic-bool.patch \
+           file://0001-cmake-add-support-for-python3.9.patch \
 "
 
 SRC_URI[md5sum] = "1f9af648b4c6d19975aab2583ab99710"
@@ -73,6 +75,7 @@ EXTRA_OECMAKE = "-DWITH_MANPAGE=OFF \
                  -DPYTHON_INSTALL_DIR=${PYTHON_SITEPACKAGES_DIR} -DPYTHON_DESIRED=3 \
                  -DPython3_EXECUTABLE=${PYTHON} \
                  -DWITH_RADOSGW_KAFKA_ENDPOINT=OFF \
+                 -DWITH_REENTRANT_STRSIGNAL=ON \
 "
 
 export STAGING_DIR_HOST

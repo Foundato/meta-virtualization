@@ -5,16 +5,22 @@ applications across multiple hosts, providing basic mechanisms for deployment, \
 maintenance, and scaling of applications. \
 "
 
-PV = "v1.17.1-beta+git${SRCREV_kubernetes}"
-SRCREV_kubernetes = "f45fc1861acab22eb6a4697e3fb831e85ef5ff9c"
+PV = "v1.20.0-rc.3+git${SRCREV_kubernetes}"
+SRCREV_kubernetes = "98bc258bf5516b6c60860e06845b899eab29825d"
+SRCREV_kubernetes-release = "e7fbf5b8b7e87ed1848cf3a0129f7a7dff2aa4ed"
 
-SRC_URI = "git://github.com/kubernetes/kubernetes.git;branch=release-1.17;name=kubernetes \
+SRC_URI = "git://github.com/kubernetes/kubernetes.git;branch=release-1.20;name=kubernetes \
+           git://github.com/kubernetes/release;branch=master;name=kubernetes-release;destsuffix=git/release \
            file://0001-hack-lib-golang.sh-use-CC-from-environment.patch \
            file://0001-cross-don-t-build-tests-by-default.patch \
+           file://0001-generate-bindata-unset-GOBIN.patch \
+           file://0001-build-golang.sh-convert-remaining-go-calls-to-use.patch \
+           file://0001-Makefile.generated_files-Fix-race-issue-for-installi.patch \
           "
 
 DEPENDS += "rsync-native \
             coreutils-native \
+            go-native \
            "
 
 LICENSE = "Apache-2.0"
@@ -40,11 +46,16 @@ do_compile() {
 	export GOARCH="${BUILD_GOARCH}"
 	# Pass the needed cflags/ldflags so that cgo can find the needed headers files and libraries
 	export CGO_ENABLED="1"
-	export CFLAGS=""
-	export LDFLAGS=""
-	export CGO_CFLAGS="${BUILDSDK_CFLAGS} --sysroot=${STAGING_DIR_TARGET}"
-	export CGO_LDFLAGS="${BUILDSDK_LDFLAGS} --sysroot=${STAGING_DIR_TARGET}"
-	make generated_files KUBE_BUILD_PLATFORMS="${HOST_GOOS}/${BUILD_GOARCH}"
+	export CFLAGS="${BUILD_CFLAGS}"
+	export LDFLAGS="${BUILD_LDFLAGS}"
+	export CGO_CFLAGS="${BUILD_CFLAGS}"
+	# as of go 1.15.5, there are some flags the CGO doesn't like. Rather than
+	# clearing them all, we sed away the ones we don't want.
+	export CGO_LDFLAGS="$(echo ${BUILD_LDFLAGS} | sed 's/-Wl,-O1//g' | sed 's/-Wl,--dynamic-linker.*?( \|$\)//g')"
+	export CC="${BUILD_CC}"
+	export LD="${BUILD_LD}"
+
+	make generated_files GO="go" KUBE_BUILD_PLATFORMS="${HOST_GOOS}/${BUILD_GOARCH}"
 
 	# Build the target binaries
 	export GOARCH="${TARGET_GOARCH}"
@@ -52,8 +63,14 @@ do_compile() {
 	export CGO_ENABLED="1"
 	export CGO_CFLAGS="${CFLAGS} --sysroot=${STAGING_DIR_TARGET}"
 	export CGO_LDFLAGS="${LDFLAGS} --sysroot=${STAGING_DIR_TARGET}"
+	export CFLAGS=""
+	export LDFLAGS=""
+	export CC="${CC}"
+	export LD="${LD}"
+	export GOBIN=""
+
 	# to limit what is built, use 'WHAT', i.e. make WHAT=cmd/kubelet
-	make cross KUBE_BUILD_PLATFORMS=${GOOS}/${GOARCH} GOLDFLAGS=""
+	make cross CGO_FLAGS=${CGO_FLAGS} GO=${GO} KUBE_BUILD_PLATFORMS=${GOOS}/${GOARCH} GOLDFLAGS=""
 }
 
 do_install() {
@@ -65,8 +82,8 @@ do_install() {
 
     install -m 755 -D ${S}/src/import/_output/local/bin/${TARGET_GOOS}/${TARGET_GOARCH}/* ${D}/${bindir}
 
-    install -m 0644 ${S}/src/import/build/debs/kubelet.service  ${D}${systemd_unitdir}/system/
-    install -m 0644 ${S}/src/import/build/debs/10-kubeadm.conf  ${D}${systemd_unitdir}/system/kubelet.service.d/
+    install -m 0644 ${WORKDIR}/git/release/cmd/kubepkg/templates/latest/deb/kubelet/lib/systemd/system/kubelet.service ${D}${systemd_unitdir}/system/
+    install -m 0644 ${WORKDIR}/git/release/cmd/kubepkg/templates/latest/deb/kubeadm/10-kubeadm.conf  ${D}${systemd_unitdir}/system/kubelet.service.d/
 }
 
 PACKAGES =+ "kubeadm kubectl kubelet kube-proxy ${PN}-misc"

@@ -53,13 +53,23 @@ RDEPENDS_${PN} = "\
 
 RDEPENDS_${PN}-dev = ""
 
+# Qemu is necessary on ARM platforms, and to support HVM guests on x86
+QEMU = "${@bb.utils.contains('PACKAGECONFIG', 'hvm', 'qemu', '', d)}"
+QEMU_arm = "qemu"
+QEMU_aarch64 = "qemu"
+
 RRECOMMENDS_${PN} = " \
+    ${QEMU} \
     ${@bb.utils.contains('PACKAGECONFIG', 'hvm', 'seabios', '', d)} \
     ${@bb.utils.contains('PACKAGECONFIG', 'externalblktap', '', '${BLKTAP_RRECOMMENDS}', d)} \
     ${PN}-flask \
     ${PN}-hvmloader \
+    ${PN}-libxenhypfs \
     ${PN}-shim \
+    ${PN}-ucode \
+    ${PN}-vchan \
     ${PN}-xenpaging \
+    ${PN}-xenhypfs \
     "
 
 RDEPENDS_${PN}-devd = " \
@@ -107,6 +117,10 @@ RDEPENDS_${PN}-scripts-network = "\
     ${PN}-volatiles \
     "
 
+RSUGGESTS_${PN}-scripts-network = "\
+    ifupdown \
+    "
+
 RSUGGESTS_${PN}-xencov = "${PN}-xencov-split"
 
 RDEPENDS_${PN}-xencommons = "\
@@ -124,6 +138,10 @@ RDEPENDS_${PN}-xendomains = "\
     ${PN}-scripts-block \
     ${PN}-scripts-common \
     virtual/xenstored \
+    "
+
+RDEPENDS_${PN}-xenhypfs = " \
+    ${PN}-libxenhypfs \
     "
 
 RDEPENDS_${PN}-xl = "libgcc"
@@ -168,6 +186,8 @@ PACKAGES = " \
     ${PN}-libxengnttab-dev \
     ${PN}-libxenguest \
     ${PN}-libxenguest-dev \
+    ${PN}-libxenhypfs \
+    ${PN}-libxenhypfs-dev \
     ${PN}-libxenlight \
     ${PN}-libxenlight-dev \
     ${PN}-libxenstat \
@@ -192,6 +212,8 @@ PACKAGES = " \
     ${PN}-scripts-network \
     ${PN}-shim \
     ${PN}-staticdev \
+    ${PN}-ucode \
+    ${PN}-vchan \
     ${PN}-volatiles \
     ${PN}-xcutils \
     ${PN}-xencommons \
@@ -199,6 +221,7 @@ PACKAGES = " \
     ${PN}-xend \
     ${PN}-xend-examples \
     ${PN}-xendomains \
+    ${PN}-xenhypfs \
     ${PN}-xenmon \
     ${PN}-xenpaging \
     ${PN}-xenpmd \
@@ -224,8 +247,8 @@ RPROVIDES_${PN}-xenstored = "virtual/xenstored"
 
 FILES_${PN}-dbg += "\
     ${libdir}/xen/bin/.debug \
-    ${libdir}/${PYTHON_DIR}/site-packages/.debug \
-    ${libdir}/${PYTHON_DIR}/site-packages/xen/lowlevel/.debug \
+    ${nonarch_libdir}/${PYTHON_DIR}/site-packages/.debug \
+    ${nonarch_libdir}/${PYTHON_DIR}/site-packages/xen/lowlevel/.debug \
     ${libdir}/fs/xfs/.debug \
     ${libdir}/fs/ufs/.debug \
     ${libdir}/fs/ext2fs-lib/.debug \
@@ -238,8 +261,8 @@ FILES_${PN}-dbg += "\
     ${libdir}exec/.debug \
     ${libdir}/xen/libexec/.debug \
     ${bindir}/.debug \
-    ${libdir}/${PYTHON_DIR}/dist-packages/.debug \
-    ${libdir}/${PYTHON_DIR}/dist-packages/xen/lowlevel/.debug \
+    ${nonarch_libdir}/${PYTHON_DIR}/dist-packages/.debug \
+    ${nonarch_libdir}/${PYTHON_DIR}/dist-packages/xen/lowlevel/.debug \
     "
 
 FILES_${PN}-dev = "\
@@ -310,6 +333,12 @@ FILES_${PN}-libxenguest-dev = " \
     ${libdir}/libxenguest.so \
     ${libdir}/pkgconfig/xenguest.pc \
     ${datadir}/pkgconfig/xenguest.pc \
+    "
+
+FILES_${PN}-libxenhypfs = "${libdir}/libxenhypfs.so.*"
+FILES_${PN}-libxenhypfs-dev = " \
+    ${libdir}/libxenhypfs.so \
+    ${libdir}/pkgconfig/xenhypfs.pc \
     "
 
 FILES_${PN}-libxenlight = "${libdir}/libxenlight.so.*"
@@ -467,8 +496,10 @@ FILES_${PN}-pygrub = "\
     ${libdir}/xen/bin/pygrub \
     "
 
+# Depending on the version of Xen libdir or nonarch libdir is used
 FILES_${PN}-python = "\
     ${libdir}/${PYTHON_DIR} \
+    ${nonarch_libdir}/${PYTHON_DIR} \
     "
 
 FILES_${PN}-remus = "\
@@ -519,6 +550,14 @@ FILES_${PN}-shim = " \
     ${libdir}/xen/boot/xen-shim \
     "
 
+FILES_${PN}-ucode = "\
+    ${sbindir}/xen-ucode \
+    "
+
+FILES_${PN}-vchan = "\
+    ${bindir}/vchan-socket-proxy \
+    "
+
 FILES_${PN}-volatiles = "\
     ${sysconfdir}/default/volatiles/99_xen \
     ${sysconfdir}/tmpfiles.d/xen.conf \
@@ -539,6 +578,10 @@ FILES_${PN}-xend-examples = "\
     ${sysconfdir}/xen/xend-config.sxp \
     ${sysconfdir}/xen/xend-pci-permissive.sxp \
     ${sysconfdir}/xen/xend-pci-quirks.sxp \
+    "
+
+FILES_${PN}-xenhypfs = "\
+    ${sbindir}/xenhypfs \
     "
 
 FILES_${PN}-xenpaging = "\
@@ -688,6 +731,14 @@ ADD_SYSROOT32_CFLAGS_x86-64 = \
         'CFLAGS += "--sysroot=${RECIPE_SYSROOT32}"', '', d)}"
 # This x86-64 override is never intended for native use, so clear that.
 ADD_SYSROOT32_CFLAGS_class-native = ""
+
+EXTRA_OECONF += " \
+    --with-systemd=${systemd_unitdir}/system \
+    --with-systemd-modules-load=${systemd_unitdir}/modules-load.d \
+    --with-initddir=${INIT_D_DIR} \
+    --with-sysconfig-leaf-dir=default \
+    --with-system-qemu=${bindir}/qemu-system-i386 \
+    "
 
 do_configure() {
     do_configure_common

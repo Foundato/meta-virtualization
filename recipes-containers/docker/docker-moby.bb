@@ -35,9 +35,9 @@ DESCRIPTION = "Linux container runtime \
 #     to a docker.inc recipe
 
 # moby commit matches the docker-engine bump on the 19.03 branch'
-SRCREV_moby = "aa6a9891b09cce3d9004121294301a30d45d998d"
-SRCREV_libnetwork = "c7bae399e46fd620b8a006174b7327e4e6e647fd"
-SRCREV_cli = "eb310fca49568dccd87c6136f774ef6fff2a1b51"
+SRCREV_moby = "7d75c1d40d88ddef08653dbd611f41df42bdf087"
+SRCREV_libnetwork = "55e924b8a84231a065879156c0de95aefc5f5435"
+SRCREV_cli = "fd3371eb7df1adeceff5935cf3ade0576a0f48d5"
 SRC_URI = "\
 	git://github.com/moby/moby.git;branch=19.03;name=moby \
 	git://github.com/docker/libnetwork.git;branch=bump_19.03;name=libnetwork;destsuffix=git/libnetwork \
@@ -45,6 +45,8 @@ SRC_URI = "\
 	file://docker.init \
 	file://0001-libnetwork-use-GO-instead-of-go.patch \
         file://0001-imporve-hardcoded-CC-on-cross-compile-docker-ce.patch \
+        file://0001-cli-use-go-cross-compiler.patch \
+        file://0001-dynbinary-use-go-cross-compiler.patch \
 	"
 
 require docker.inc
@@ -57,7 +59,7 @@ GO_IMPORT = "import"
 
 S = "${WORKDIR}/git"
 
-DOCKER_VERSION = "19.03.8"
+DOCKER_VERSION = "19.03.14"
 PV = "${DOCKER_VERSION}+git${SRCREV_moby}"
 
 PACKAGES =+ "${PN}-contrib"

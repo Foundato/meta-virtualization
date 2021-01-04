@@ -9,7 +9,7 @@ DESCRIPTION = "The Xen hypervisor"
 # The Xen hypervisor has a narrower compatible platform range than the Xen tools
 COMPATIBLE_HOST = '(x86_64.*).*-linux|aarch64.*-linux|arm-.*-linux-gnueabi'
 
-inherit deploy python3native
+inherit deploy python3native cml1
 
 PACKAGES = " \
     ${PN} \
@@ -34,6 +34,18 @@ FILES_${PN}-efi = " \
 
 do_configure() {
     do_configure_common
+
+    # Handle the config fragments
+    cfgs="${@' '.join(find_cfgs(d))}"
+    if [ -n "${cfgs}" ]; then
+        # If .config is not present generate one in order
+        # to use the merge_config.sh
+        if [ ! -f "${S}/xen/.config" ] ; then
+            oe_runmake -C ${S}/xen defconfig
+        fi
+        ${S}/xen/tools/kconfig/merge_config.sh -m -O \
+            ${S}/xen ${S}/xen/.config "${cfgs}"
+    fi
 }
 
 do_compile() {
@@ -43,6 +55,8 @@ do_compile() {
 do_install() {
     oe_runmake DESTDIR="${D}" install-xen
 }
+# The do_install also ships files in /boot and /usr/lib64
+SYSROOT_DIRS += "/boot ${exec_prefix}/lib64"
 
 do_deploy() {
     install -d ${DEPLOYDIR}
@@ -64,11 +78,13 @@ do_deploy() {
 #   at least run afer that task has completed
 # - the hypervisor binaries may be included in the image filesystem, so we
 #   must ensure that the binaries deployed match what is staged in the sysroot:
-#   so do deploy must run after do_populate_sysroot -- which is always after
-#   do_compile, so that handles 'after do_compile' too
+#   so do_deploy must run after do_populate_sysroot and after do_compile is
+#   also needed for when having rm_work and bitbake needs to re-run do_deploy,
+#   we ensure that the ${B} is re-generated, otherwise the deploy-xen will be
+#   empty
 # - add the task before do_build to ensure that deployment has completed when
 #   the recipe build done stamp is written
-addtask deploy after do_populate_sysroot before do_build
+addtask deploy after do_compile do_populate_sysroot before do_build
 # To ensure that a deployed hypervisor has matching tools, add a dependency to
 # make sure that the tools have built and been staged:
 do_deploy[depends] += "xen-tools:do_populate_sysroot"
@@ -77,35 +93,12 @@ do_deploy[depends] += "xen-tools:do_populate_sysroot"
 do_deploy[depends] += "xen-tools:do_deploy"
 
 # Enable use of menuconfig directly from bitbake and also within the devshell
-OE_TERMINAL_EXPORTS += "HOST_EXTRACFLAGS HOSTLDFLAGS TERMINFO"
-HOST_EXTRACFLAGS = "${BUILD_CFLAGS} ${BUILD_LDFLAGS}"
-HOSTLDFLAGS = "${BUILD_LDFLAGS}"
-TERMINFO = "${STAGING_DATADIR_NATIVE}/terminfo"
 do_devshell[depends] += "ncurses-native:do_populate_sysroot"
 
-KCONFIG_CONFIG_COMMAND ??= "menuconfig"
-python do_menuconfig() {
-    import shutil
+# Pass the native library path for kconfig build when running the do_menuconfig
+# task
+CROSS_CURSES_LIB += "-L${STAGING_LIBDIR_NATIVE}"
 
-    try:
-        mtime = os.path.getmtime("xen/.config")
-        shutil.copy("xen/.config", "xen/.config.orig")
-    except OSError:
-        mtime = 0
-
-    oe_terminal("${SHELL} -c \"cd xen; XEN_CONFIG_EXPERT=y make %s; if [ \$? -ne 0 ]; then echo 'Command failed.'; printf 'Press any key to continue... '; read r; fi\"" % d.getVar('KCONFIG_CONFIG_COMMAND'),
-        d.getVar('PN') + ' Configuration', d)
-
-    try:
-        newmtime = os.path.getmtime("xen/.config")
-    except OSError:
-        newmtime = 0
-
-    if newmtime > mtime:
-        bb.note("Configuration changed, recompile will be forced")
-        bb.build.write_taint('do_compile', d)
-}
-do_menuconfig[depends] += "ncurses-native:do_populate_sysroot"
-do_menuconfig[nostamp] = "1"
-do_menuconfig[dirs] = "${B}"
-addtask menuconfig after do_configure
+# Specify the root dir of the .config file for do_menuconfig and do_diffconfig
+# tasks
+KCONFIG_CONFIG_ROOTDIR = "${S}/xen"

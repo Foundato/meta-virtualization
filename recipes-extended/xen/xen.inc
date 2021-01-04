@@ -118,17 +118,12 @@ EXTRA_OECONF += " \
     --exec-prefix=${prefix} \
     --prefix=${prefix} \
     --host=${HOST_SYS} \
-    --with-systemd=${systemd_unitdir}/system \
-    --with-systemd-modules-load=${systemd_unitdir}/modules-load.d \
     --disable-stubdom \
     --disable-ioemu-stubdom \
     --disable-pv-grub \
     --disable-xenstore-stubdom \
     --disable-rombios \
     --disable-ocamltools \
-    --with-initddir=${INIT_D_DIR} \
-    --with-sysconfig-leaf-dir=default \
-    --with-system-qemu=/usr/bin/qemu-system-i386 \
     --disable-qemu-traditional \
     "
 
@@ -193,6 +188,7 @@ do_post_patch() {
 do_post_patch_append_arm()  {
     # The hypervisor binary must not be built with the hard floating point ABI.
     echo "CC := \$(filter-out ${TUNE_CCARGS},\$(CC))" >> ${S}/xen/arch/arm/Rules.mk
+    echo "CPP := \$(filter-out ${TUNE_CCARGS},\$(CPP))" >> ${S}/xen/arch/arm/Rules.mk
 }
 
 addtask post_patch after do_patch before do_configure
@@ -213,7 +209,7 @@ do_configure_common() {
     fi
 
     if [ -f "${WORKDIR}/defconfig" ]; then
-        cp "${WORKDIR}/defconfig" "${B}/xen/.config" || \
+        cp "${WORKDIR}/defconfig" "${S}/xen/.config" || \
         bbfatal "Unable to copy defconfig to .config"
     fi
 
