@@ -52,7 +52,7 @@ do_install() {
         install -m 755 "${WORKDIR}/k3s-clean" "${D}${BIN_PREFIX}/bin"
 
         # Install systemd services
-        install -d ${D}/${systemd_unitdir}/system
+        install -d ${D}${systemd_unitdir}/system
         install -m 0644 ${WORKDIR}/k3s.service ${D}/${systemd_unitdir}/system
         install -m 0644 ${WORKDIR}/k3s-agent.service ${D}/${systemd_unitdir}/system
         install -m 755 "${WORKDIR}/k3s-agent" "${D}${BIN_PREFIX}/bin"
@@ -60,15 +60,15 @@ do_install() {
 
 PACKAGES =+ "${PN}-server ${PN}-agent"
 
-SYSTEMD_PACKAGES = "${@bb.utils.contains('DISTRO_FEATURES','systemd','${PN}-server ${PN}-agent','',d)}"
-SYSTEMD_SERVICE_${PN}-server = "k3s.service"
-SYSTEMD_SERVICE_${PN}-agent = "k3s-agent.service"
-SYSTEMD_AUTO_ENABLE_${PN}-agent = "enable"
-SYSTEMD_AUTO_ENABLE_${PN}-server = "enable"
+# SYSTEMD_PACKAGES = "${@bb.utils.contains('DISTRO_FEATURES','systemd','${PN}-server ${PN}-agent','',d)}"
+# SYSTEMD_SERVICE_${PN}-server = "k3s.service"
+# SYSTEMD_SERVICE_${PN}-agent = "k3s-agent.service"
+# SYSTEMD_AUTO_ENABLE_${PN}-agent = "enable"
+# SYSTEMD_AUTO_ENABLE_${PN}-server = "enable"
 
 FILES_${PN}-agent = "${BIN_PREFIX}/bin/k3s-agent"
 FILES_${PN} += " \
-    ${systemd_unitdir}/system/* \
+    ${systemd_system_unitdir}/* \
     ${BIN_PREFIX}/bin/* \
 "
 
