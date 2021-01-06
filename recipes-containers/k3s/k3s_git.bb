@@ -70,8 +70,8 @@ SYSTEMD_AUTO_ENABLE_${PN}-server = "enable"
 
 FILES_${PN}-agent = "${BIN_PREFIX}/bin/k3s-agent"
 FILES_${PN} += "${BIN_PREFIX}/bin/*"
-FILES_\${PN} += "\${systemd_unitdir}/system/${PN}.service"
-FILES_\${PN} += "\${systemd_unitdir}/system/${PN}-agent.service"
+FILES_${PN} += "${systemd_unitdir}/system/${PN}.service"
+FILES_${PN} += "${systemd_unitdir}/system/${PN}-agent.service"
 
 RDEPENDS_${PN} = "k3s-cni conntrack-tools coreutils findutils iptables iproute2 ipset virtual/containerd"
 RDEPENDS_${PN}-server = "${PN}"
