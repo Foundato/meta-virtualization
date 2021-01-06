@@ -52,22 +52,26 @@ do_install() {
         install -m 755 "${WORKDIR}/k3s-clean" "${D}${BIN_PREFIX}/bin"
 
         if ${@bb.utils.contains('DISTRO_FEATURES','systemd','true','false',d)}; then
-                install -D -m 0644 "${WORKDIR}/k3s.service" "${D}${systemd_system_unitdir}/k3s.service"
-                install -D -m 0644 "${WORKDIR}/k3s-agent.service" "${D}${systemd_system_unitdir}/k3s-agent.service"
+                install -d ${D}/${systemd_unitdir}/system
+                install -D -m 0644 ${WORKDIR}/${PN}.service ${D}/${systemd_unitdir}/system
+                install -D -m 0644 ${WORKDIR}/${PN}-agent.service ${D}/${systemd_unitdir}/system
                 sed -i "s#\(Exec\)\(.*\)=\(.*\)\(k3s\)#\1\2=${BIN_PREFIX}/bin/\4#g" "${D}${systemd_system_unitdir}/k3s.service" "${D}${systemd_system_unitdir}/k3s-agent.service"
-                install -m 755 "${WORKDIR}/k3s-agent" "${D}${BIN_PREFIX}/bin"
+                install -m 755 "${WORKDIR}/${PN}-agent" "${D}${BIN_PREFIX}/bin"
         fi
 }
 
 PACKAGES =+ "${PN}-server ${PN}-agent"
 
 SYSTEMD_PACKAGES = "${@bb.utils.contains('DISTRO_FEATURES','systemd','${PN}-server ${PN}-agent','',d)}"
-SYSTEMD_SERVICE_${PN}-server = "${@bb.utils.contains('DISTRO_FEATURES','systemd','k3s.service','',d)}"
-SYSTEMD_SERVICE_${PN}-agent = "${@bb.utils.contains('DISTRO_FEATURES','systemd','k3s-agent.service','',d)}"
+SYSTEMD_SERVICE_${PN}-server = "${@bb.utils.contains('DISTRO_FEATURES','systemd','${PN}.service','',d)}"
+SYSTEMD_SERVICE_${PN}-agent = "${@bb.utils.contains('DISTRO_FEATURES','systemd','${PN}-agent.service','',d)}"
 SYSTEMD_AUTO_ENABLE_${PN}-agent = "enable"
+SYSTEMD_AUTO_ENABLE_${PN}-server = "enable"
 
 FILES_${PN}-agent = "${BIN_PREFIX}/bin/k3s-agent"
 FILES_${PN} += "${BIN_PREFIX}/bin/*"
+FILES_\${PN} += "\${systemd_unitdir}/system/${PN}.service"
+FILES_\${PN} += "\${systemd_unitdir}/system/${PN}-agent.service"
 
 RDEPENDS_${PN} = "k3s-cni conntrack-tools coreutils findutils iptables iproute2 ipset virtual/containerd"
 RDEPENDS_${PN}-server = "${PN}"
