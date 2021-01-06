@@ -19,7 +19,7 @@ PV = "v1.19.5+git${SRCPV}"
 
 CNI_NETWORKING_FILES ?= "${WORKDIR}/cni-containerd-net.conf"
 
-inherit go goarch systemd update-rc.d cni_networking
+inherit go goarch systemd cni_networking
 
 PACKAGECONFIG = ""
 PACKAGECONFIG[upx] = ",,upx-native"
