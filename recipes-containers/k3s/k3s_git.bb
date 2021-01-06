@@ -19,10 +19,7 @@ PV = "v1.19.5+git${SRCPV}"
 
 CNI_NETWORKING_FILES ?= "${WORKDIR}/cni-containerd-net.conf"
 
-inherit go
-inherit goarch
-inherit systemd
-inherit cni_networking
+inherit go goarch systemd update-rc.d cni_networking
 
 PACKAGECONFIG = ""
 PACKAGECONFIG[upx] = ",,upx-native"
@@ -53,8 +50,12 @@ do_install() {
 
         # Install systemd services
         install -d ${D}${systemd_system_unitdir}
-        install -m 0644 ${WORKDIR}/k3s.service ${D}${systemd_system_unitdir}
-        install -m 0644 ${WORKDIR}/k3s-agent.service ${D}${systemd_system_unitdir}
+        install -Dm0644 ${WORKDIR}/k3s.service ${D}${systemd_system_unitdir}
+        install -Dm0644 ${WORKDIR}/k3s-agent.service ${D}${systemd_system_unitdir}
+        sed -i -e 's,@BASE_BINDIR@,${base_bindir},g' \
+        		-e 's,@BINDIR@,${bindir},g' \
+        		-e 's,@SBINDIR@,${sbindir},g' \
+        		${D}${systemd_system_unitdir}/k3s.service ${D}${systemd_system_unitdir}/k3s-agent.service
         install -m 755 "${WORKDIR}/k3s-agent" "${D}${BIN_PREFIX}/bin"
 }
 
