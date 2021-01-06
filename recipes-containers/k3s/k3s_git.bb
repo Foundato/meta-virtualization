@@ -55,7 +55,7 @@ do_install() {
                 install -d ${D}/${systemd_unitdir}/system
                 install -D -m 0644 ${WORKDIR}/${PN}.service ${D}/${systemd_unitdir}/system
                 install -D -m 0644 ${WORKDIR}/${PN}-agent.service ${D}/${systemd_unitdir}/system
-                sed -i "s#\(Exec\)\(.*\)=\(.*\)\(k3s\)#\1\2=${BIN_PREFIX}/bin/\4#g" "${D}${systemd_system_unitdir}/k3s.service" "${D}${systemd_system_unitdir}/k3s-agent.service"
+                sed -i "s#\(Exec\)\(.*\)=\(.*\)\(k3s\)#\1\2=${BIN_PREFIX}/bin/\4#g" "${D}/${systemd_system_unitdir}/${PN}.service" "${D}/${systemd_system_unitdir}/${PN}-agent.service"
                 install -m 755 "${WORKDIR}/${PN}-agent" "${D}${BIN_PREFIX}/bin"
         fi
 }
