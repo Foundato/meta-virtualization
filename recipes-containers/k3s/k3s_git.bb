@@ -64,7 +64,7 @@ PACKAGES =+ "${PN}-server ${PN}-agent"
 SYSTEMD_PACKAGES = "${@bb.utils.contains('DISTRO_FEATURES','systemd','${PN}-server ${PN}-agent','',d)}"
 SYSTEMD_SERVICE_${PN}-server = "${@bb.utils.contains('DISTRO_FEATURES','systemd','k3s.service','',d)}"
 SYSTEMD_SERVICE_${PN}-agent = "${@bb.utils.contains('DISTRO_FEATURES','systemd','k3s-agent.service','',d)}"
-SYSTEMD_AUTO_ENABLE_${PN}-agent = "disable"
+SYSTEMD_AUTO_ENABLE_${PN}-agent = "enable"
 
 FILES_${PN}-agent = "${BIN_PREFIX}/bin/k3s-agent"
 FILES_${PN} += "${BIN_PREFIX}/bin/*"
